@@ -63,14 +63,16 @@
 
 <script>
 import L from 'leaflet';
+import cityName from './assets/cityName.json';
 
-console.log(L);
+let osmMap = {};
 
 export default {
   name: 'App',
   data() {
     return {
       maskData: [],
+      cityName,
     };
   },
   mounted() {
@@ -78,6 +80,16 @@ export default {
     this.axios.get(api).then((res) => {
       this.maskData = res.data.features;
     });
+
+    osmMap = L.map('map', {
+      center: [25.03, 121.55], // 台北市座標
+      zoom: 16,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 18,
+    }).addTo(osmMap);
   },
 };
 </script>
