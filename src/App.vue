@@ -7,13 +7,27 @@
           <div class="sticky-top bg-white shadow-sm p-2">
             <div class="form-group d-flex">
               <label
-                for="cityName"
+                for="CityName"
                 class="mr-2 col-form-label text-right"
               >
               縣市
               </label>
               <div class="flex-fill">
-                <select id="cityName" class="form-control"></select>
+                <select
+                  id="CityName"
+                  class="form-control"
+                  v-model="select.city"
+                  @change="select.area = ''"
+                >
+                <option value="">-- Select One --</option>
+                <option
+                  v-for="city in CityName"
+                  :key="city.CityName"
+                  :value="city.CityName"
+                >
+                  {{ city.CityName }}
+                </option>
+              </select>
               </div>
             </div>
             <div class="form-group d-flex">
@@ -24,9 +38,23 @@
                 地區
               </label>
               <div class="flex-fill">
-                <select id="area" class="form-control">
-                  <option value="">-- Select One --</option>
-                </select>
+                <!-- <select
+                  id="area"
+                  class="form-control"
+                  v-if="select.city.length"
+                  v-model="select.area"
+                  @change="updateSelect"
+                >
+                <option value="">-- Select One --</option>
+                <option
+                  :value="a.AreaName"
+                  v-for="a in CityName.find((city) => (
+                    city.CityName === select.city)).AreaList"
+                  :key="a.AreaName"
+                >
+                  {{ a.AreaName }}
+                </option>
+              </select> -->
               </div>
             </div>
             <p class="mb-0 small text-muted text-right">
@@ -63,7 +91,7 @@
 
 <script>
 import L from 'leaflet';
-import cityName from './assets/cityName.json';
+import CityName from './assets/TaiwanArea.json';
 
 let osmMap = {};
 
@@ -72,17 +100,22 @@ export default {
   data() {
     return {
       maskData: [],
-      cityName,
+      CityName,
+      select: {
+        city: '臺北市',
+        area: '大安區',
+      },
     };
   },
   mounted() {
     const api = 'https://raw.githubusercontent.com/kiang/pharmacies/master/json/points.json';
     this.axios.get(api).then((res) => {
       this.maskData = res.data.features;
+      this.updateMap();
     });
 
     osmMap = L.map('map', {
-      center: [25.03, 121.55], // 台北市座標
+      center: [25.03, 121.55], // 臺北市座標
       zoom: 16,
     });
 
@@ -90,6 +123,20 @@ export default {
       attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 18,
     }).addTo(osmMap);
+  },
+  methods: {
+    updateMap() {
+      const pharmacies = this.maskData.filter((pharmacy) => (
+        pharmacy.properties.county === this.select.city));
+
+      pharmacies.forEach((pharmacy) => {
+        const { properties, geometry } = pharmacy;
+        L.marker([
+          geometry.coordinates[1],
+          geometry.coordinates[0],
+        ]).addTo(osmMap).bindPopup(`藥局名稱：${properties.name}`);
+      });
+    },
   },
 };
 </script>
