@@ -14,7 +14,7 @@
               </label>
               <div class="flex-fill">
                 <select
-                  id="CityName"
+                  id="city"
                   class="form-control"
                   v-model="select.city"
                   @change="select.area = ''"
@@ -38,23 +38,22 @@
                 地區
               </label>
               <div class="flex-fill">
-                <!-- <select
+                <select
                   id="area"
                   class="form-control"
-                  v-if="select.city.length"
                   v-model="select.area"
                   @change="updateSelect"
                 >
                 <option value="">-- Select One --</option>
                 <option
-                  :value="a.AreaName"
-                  v-for="a in CityName.find((city) => (
+                  v-for="area in CityName.find((city) => (
                     city.CityName === select.city)).AreaList"
-                  :key="a.AreaName"
+                  :key="area.AreaName"
+                  :value="area.AreaName"
                 >
-                  {{ a.AreaName }}
+                  {{ area.AreaName }}
                 </option>
-              </select> -->
+              </select>
               </div>
             </div>
             <p class="mb-0 small text-muted text-right">
@@ -95,6 +94,31 @@ import CityName from './assets/TaiwanArea.json';
 
 let osmMap = {};
 
+const iconsConfig = {
+  iconSize: [40, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [1, -40],
+  shadowSize: [40, 40],
+};
+
+const icons = {
+  green: new L.Icon({
+    iconUrl: 'images/marker-green.png',
+    shadowUrl: 'images/marker-shadow.png',
+    ...iconsConfig,
+  }),
+  red: new L.Icon({
+    iconUrl: 'images/marker-red.png',
+    shadowUrl: 'images/marker-shadow.png',
+    ...iconsConfig,
+  }),
+  grey: new L.Icon({
+    iconUrl: 'images/marker-grey.png',
+    shadowUrl: 'images/marker-shadow.png',
+    ...iconsConfig,
+  }),
+};
+
 export default {
   name: 'App',
   data() {
@@ -103,38 +127,82 @@ export default {
       CityName,
       select: {
         city: '臺北市',
-        area: '大安區',
+        area: '中正區',
       },
     };
   },
   mounted() {
-    const api = 'https://raw.githubusercontent.com/kiang/pharmacies/master/json/points.json';
-    this.axios.get(api).then((res) => {
-      this.maskData = res.data.features;
-      this.updateMap();
-    });
-
     osmMap = L.map('map', {
       center: [25.03, 121.55], // 臺北市座標
       zoom: 16,
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 18,
     }).addTo(osmMap);
+
+    // 取得藥局資料
+    const api = 'https://raw.githubusercontent.com/kiang/pharmacies/master/json/points.json';
+    this.axios.get(api).then((res) => {
+      this.maskData = res.data.features;
+      this.updateMapMarker();
+    });
   },
   methods: {
-    updateMap() {
-      const pharmacies = this.maskData.filter((pharmacy) => (
-        pharmacy.properties.county === this.select.city));
+    updateMapMarker() {
+      const pharmacies = this.maskData.filter((pharmacy) => {
+        if (!this.select.area) {
+          return pharmacy.properties.county === this.select.city;
+        }
+        return pharmacy.properties.town === this.select.area;
+      });
 
       pharmacies.forEach((pharmacy) => {
         const { properties, geometry } = pharmacy;
+        const icon = properties.mask_adult || properties.mask_child ? icons.green : icons.grey;
         L.marker([
           geometry.coordinates[1],
           geometry.coordinates[0],
-        ]).addTo(osmMap).bindPopup(`藥局名稱：${properties.name}`);
+        ], { icon }).addTo(osmMap).bindPopup(`
+          <h4>藥局名稱：${properties.name}</h4>
+          <div class="flex">
+            <div>成人 - ${properties.mask_adult ? `${properties.mask_adult} 個` : '未取得資料'}</div>
+            <div>兒童 - ${properties.mask_child ? `${properties.mask_child} 個` : '未取得資料'}</div>
+          </div>
+          <a href="https://www.google.com.tw/maps/place/${properties.address}" target="_blank">${properties.address}</a>
+          <small>最後更新時間：${properties.updated}</small>
+        `);
+      });
+      this.penTo(pharmacies[0]);
+    },
+    updateSelect() {
+      this.removeMarker();
+      this.updateMapMarker();
+    },
+    penTo(pharmacy) {
+      const { properties, geometry } = pharmacy;
+      const icon = properties.mask_adult || properties.mask_child ? icons.green : icons.grey;
+      osmMap.panTo(new L.LatLng(geometry.coordinates[1], geometry.coordinates[0]));
+
+      L.marker([
+        geometry.coordinates[1],
+        geometry.coordinates[0],
+      ], { icon }).addTo(osmMap).bindPopup(`
+        <h4>藥局名稱：${properties.name}</h4>
+        <div class="flex">
+          <div>成人 - ${properties.mask_adult ? `${properties.mask_adult} 個` : '未取得資料'}</div>
+          <div>兒童 - ${properties.mask_child ? `${properties.mask_child} 個` : '未取得資料'}</div>
+        </div>
+        <a href="https://www.google.com.tw/maps/place/${properties.address}" target="_blank">${properties.address}</a>
+        <small>最後更新時間：${properties.updated}</small>
+      `).openPopup();
+    },
+    removeMarker() {
+      osmMap.eachLayer((layer) => {
+        if (layer instanceof L.Marker) {
+          osmMap.removeLayer(layer);
+        }
       });
     },
   },
