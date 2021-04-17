@@ -13,7 +13,8 @@
     "core-js": "^3.6.5",
     "leaflet": "^1.7.1",
     "vue": "^2.6.11",
-    "vue-axios": "^3.2.4"
+    "vue-axios": "^3.2.4",
+    "vuescroll": "^4.17.3"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~4.5.0",

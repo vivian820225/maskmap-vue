@@ -3,81 +3,125 @@
     <div class="row no-gutters">
       <!-- 左側搜尋 -->
       <div class="col-sm-3">
-        <div class="toolbox">
-          <div class="sticky-top bg-white shadow-sm p-2">
-            <div class="form-group d-flex">
-              <label
-                for="CityName"
-                class="mr-2 col-form-label text-right"
-              >
-              縣市
-              </label>
-              <div class="flex-fill">
-                <select
-                  id="city"
-                  class="form-control"
-                  v-model="select.city"
-                  @change="select.area = ''"
-                >
-                <option value="">-- Select One --</option>
-                <option
-                  v-for="city in CityName"
-                  :key="city.CityName"
-                  :value="city.CityName"
-                >
-                  {{ city.CityName }}
-                </option>
-              </select>
+        <div class="toolBox">
+          <vuescroll :ops="ops">
+            <div class="sticky-top bg-white shadow-sm pt-4 pb-2 px-3">
+              <div id="logo" class="mb-4">
+                <img src="@/assets/logo.png" alt="MaskMap口罩地圖">
               </div>
-            </div>
-            <div class="form-group d-flex">
-              <label
-                for="area"
-                class="mr-2 col-form-label text-right"
-              >
-                地區
-              </label>
-              <div class="flex-fill">
-                <select
-                  id="area"
-                  class="form-control"
-                  v-model="select.area"
-                  @change="updateSelect"
+              <h2 class="h4">請選擇欲查詢的區域</h2>
+              <div class="form-group d-flex">
+                <label
+                  for="CityName"
+                  class="mr-2 col-form-label text-right"
                 >
-                <option value="">-- Select One --</option>
-                <option
-                  v-for="area in CityName.find((city) => (
-                    city.CityName === select.city)).AreaList"
-                  :key="area.AreaName"
-                  :value="area.AreaName"
-                >
-                  {{ area.AreaName }}
-                </option>
-              </select>
-              </div>
-            </div>
-            <p class="mb-0 small text-muted text-right">
-              請先選擇區域查看（綠色表示還有口罩）
-            </p>
-          </div>
-          <ul class="list-group">
-            <template>
-              <a class="list-group-item text-left">
-                <h3>藥局名稱</h3>
-                <p class="mb-0">成人口罩：1 | 兒童口罩：2</p>
-                <p class="mb-0">
-                  地址：
-                  <a
-                    href="https://www.google.com.tw/maps/place/..."
-                    target="_blank"
-                    title="Google Map"
+                縣市
+                </label>
+                <div class="flex-fill">
+                  <select
+                    id="city"
+                    class="form-control"
+                    v-model="select.city"
+                    @change="select.area = ''"
                   >
-                    地址
-                  </a>
-                </p>
-              </a>
-            </template>
-          </ul>
+                  <option value="">-- Select One --</option>
+                  <option
+                    v-for="city in CityName"
+                    :key="city.CityName"
+                    :value="city.CityName"
+                  >
+                    {{ city.CityName }}
+                  </option>
+                </select>
+                </div>
+              </div>
+              <div class="form-group d-flex">
+                <label
+                  for="area"
+                  class="mr-2 col-form-label text-right"
+                >
+                  地區
+                </label>
+                <div class="flex-fill">
+                  <select
+                    id="area"
+                    class="form-control"
+                    v-model="select.area"
+                    @change="updateSelect"
+                  >
+                    <option value="">-- Select One --</option>
+                    <option
+                      v-for="area in CityName.find((city) => (
+                        city.CityName === select.city)).AreaList"
+                      :key="area.AreaName"
+                      :value="area.AreaName"
+                    >
+                      {{ area.AreaName }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <hr>
+              <h2 class="h4">使用關鍵字搜尋</h2>
+              <div class="form-group position-relative">
+                <div class="input-group">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="請輸入關鍵字"
+                    aria-label="關鍵字搜尋"
+                    v-model.trim="keywords"
+                    @click.stop="searchFocus = true"
+                    @blur="searchFocus = false"
+                  >
+                  <div class="input-group-append">
+                    <button
+                      class="btn btn-outline-secondary"
+                      type="button"
+                      @click="searchKeyword"
+                    >
+                      查詢
+                    </button>
+                  </div>
+                </div>
+                <!-- 儲存至 localStorage 紀錄 -->
+                <ul class="searchBar" v-if="searchFocus">
+                  <li class="clearStorage">
+                    <span>清除搜尋紀錄</span>
+                  </li>
+                </ul>
+              </div>
+              <p class="mb-0 small text-muted text-right">
+                <span v-if="filterData.length">共有 <span>{{ filterData.length }}</span> 項符合條件</span>
+                <span v-else>無符合條件的項目</span>
+              </p>
+            </div>
+            <ul class="list-group p-2">
+              <template v-for="(item, i) in filterData">
+                <li
+                  :key="i"
+                  class="list-group-item text-left"
+                  @click="penTo(item)"
+                >
+                  <h3>{{ item.properties.name }}</h3>
+                  <p class="mb-0">
+                    成人口罩：{{ item.properties.mask_adult }} |
+                    兒童口罩：{{ item.properties.mask_child }}
+                  </p>
+                  <p class="mb-0">
+                    地址：
+                    <a
+                      :href="`https://www.google.com.tw/maps/place/${item.properties.address}`"
+                      target="_blank"
+                      title="Google Map"
+                    >
+                      {{ item.properties.address }}
+                    </a>
+                  </p>
+                </li>
+              </template>
+            </ul>
+          </vuescroll>
         </div>
       </div>
       <!-- 右側地圖 -->
@@ -89,6 +133,7 @@
 </template>
 
 <script>
+import vuescroll from 'vuescroll';
 import L from 'leaflet';
 import CityName from './assets/TaiwanArea.json';
 
@@ -124,12 +169,32 @@ export default {
   data() {
     return {
       maskData: [],
+      filterData: [],
       CityName,
       select: {
         city: '臺北市',
         area: '中正區',
       },
+      searchFocus: false,
+      keywords: '',
+      ops: {
+        rail: {
+          opacity: '0.2',
+          background: '#F5F5F5',
+          border: undefined,
+          size: '6px',
+        },
+        bar: {
+          background: '#9BC9FF',
+          keepShow: false,
+          size: '4px',
+          minSize: 0.2,
+        },
+      },
     };
+  },
+  components: {
+    vuescroll,
   },
   mounted() {
     osmMap = L.map('map', {
@@ -155,9 +220,17 @@ export default {
         if (!this.select.area) {
           return pharmacy.properties.county === this.select.city;
         }
-        return pharmacy.properties.town === this.select.area;
+        if (pharmacy.properties.county === this.select.city) {
+          return pharmacy.properties.town === this.select.area;
+        }
+        return null; // 避免同區不同市的資料呈現
       });
 
+      this.filterData = pharmacies;
+      this.setMarker(pharmacies);
+      this.penTo(pharmacies[0]);
+    },
+    setMarker(pharmacies) {
       pharmacies.forEach((pharmacy) => {
         const { properties, geometry } = pharmacy;
         const icon = properties.mask_adult || properties.mask_child ? icons.green : icons.grey;
@@ -174,11 +247,20 @@ export default {
           <small>最後更新時間：${properties.updated}</small>
         `);
       });
-      this.penTo(pharmacies[0]);
     },
     updateSelect() {
       this.removeMarker();
       this.updateMapMarker();
+    },
+    searchKeyword() {
+      this.removeMarker();
+      const pharmacies = this.maskData.filter((pharmacy) => (
+        pharmacy.properties.name.includes(this.keywords)
+      ));
+
+      this.filterData = pharmacies;
+      this.setMarker(pharmacies);
+      this.keywords = '';
     },
     penTo(pharmacy) {
       const { properties, geometry } = pharmacy;
@@ -215,14 +297,14 @@ export default {
 #map {
   height: 100vh;
 }
-.highlight {
-  background: #e9ffe3;
-}
-.toolbox {
+.toolBox {
   height: 100vh;
-  overflow-y: auto;
+  background-color: #F5F5F5;
   a {
     cursor: pointer;
   }
+}
+.list-group-item {
+  cursor: pointer;
 }
 </style>
