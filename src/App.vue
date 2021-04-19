@@ -173,7 +173,7 @@ export default {
       CityName,
       select: {
         city: '臺北市',
-        area: '中正區',
+        area: '北投區',
       },
       searchFocus: false,
       keywords: '',
